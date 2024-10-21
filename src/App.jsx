@@ -1,6 +1,58 @@
-
+import { useState, useEffect } from "react";
 
 function App() {
+  const [texto, setTexto] = useState("");
+  const [traducao, setTraducao] = useState("Colocar aqui o texto traduzido");
+  const [idiomaOrigem, setIdiomaOrigem] = useState("pt-br");
+  const [idiomaDestino, setIdiomaDestino] = useState("en-us");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function API(text) {
+    const response = await fetch(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
+        text
+      )}&langpair=${idiomaOrigem}|${idiomaDestino}`
+    );
+    const data = await response.json();
+    return data.responseData.translatedText;
+  }
+
+  useEffect(() => {
+    if (texto.trim()) {
+      traduzir();
+    } else {
+      setTraducao("Colocar aqui o texto traduzido");
+    }
+  }, [texto, idiomaOrigem, idiomaDestino]);
+
+  async function traduzir() {
+    if (texto.trim() === "") {
+      setTraducao("Colocar aqui o texto traduzido");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const translatedText = await API(texto);
+      setTraducao(translatedText);
+    } catch (error) {
+      console.error("Erro ao traduzir:", error);
+      setError("Erro na tradução. Tente novamente.");
+      setTraducao("Erro na tradução. Tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function inverterIdiomas() {
+    const temp = idiomaOrigem;
+    setIdiomaOrigem(idiomaDestino);
+    setIdiomaDestino(temp);
+  }
+
   const languages = [
     { code: "en-us", name: "Inglês" },
     { code: "es", name: "Espanhol" },
@@ -9,9 +61,6 @@ function App() {
     { code: "it", name: "Italiano" },
     { code: "pt-br", name: "Português" },
   ];
-
-  let isLoading = false
-  let error = ""
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -26,13 +75,20 @@ function App() {
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
             <select
               className="text-sm text-textColor bg-transparent border-none focus:outline-none cursor-pointer"
-              value="en-us"
+              value={idiomaOrigem}
+              onChange={(e) => setIdiomaOrigem(e.target.value)}
             >
-              <option value="pt-br">Português</option>
-              <option value="en-us">Inglês</option>
+              {languages.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.name}
+                </option>
+              ))}
             </select>
 
-            <button className="p-2 rounded-full hover:bg-gray-100 outline-none">
+            <button
+              onClick={inverterIdiomas}
+              className="p-2 rounded-full hover:bg-gray-100 outline-none"
+            >
               <svg
                 className="w-5 h-5 text-headerColor"
                 fill="none"
@@ -51,10 +107,14 @@ function App() {
 
             <select
               className="text-sm text-textColor bg-transparent border-none focus:outline-none cursor-pointer"
-              value="pt-br"
+              value={idiomaDestino}
+              onChange={(e) => setIdiomaDestino(e.target.value)}
             >
-              <option value="pt-br">Português</option>
-              <option value="en-us">Inglês</option>
+              {languages.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -62,8 +122,10 @@ function App() {
             <div className="p-4">
               <textarea
                 className="w-full h-40 text-lg text-textColor bg-transparent resize-none border-none outline-none"
-                placeholder="Digite seu texto..."                
-              ></textarea>
+                placeholder="Digite seu texto..."
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+              />
             </div>
 
             <div className="relative p-4 bg-secondaryBackground border-l border-gray-200">
@@ -72,7 +134,7 @@ function App() {
                   <div className="animate-spin rounded-full h-8 w-8 border-blue-500 border-t-2"></div>
                 </div>
               ) : (
-                <p className="text-lg text-textColor">Colocar aqui o texto traduzido</p>
+                <p className="text-lg text-textColor">{traducao}</p>
               )}
             </div>
           </div>
